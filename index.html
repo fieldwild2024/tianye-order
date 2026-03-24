@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>田野丼飯 - 正式點餐系統</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        :root { --primary: #e67e22; --success: #27ae60; --bg: #f8f9fa; --text: #2c3e50; --gray: #95a5a6; --blue: #3498db; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        
+        .header { background: white; padding: 15px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
+        .step-indicator { font-size: 0.85rem; color: var(--primary); font-weight: bold; margin-bottom: 4px; }
+        .brand-name { font-size: 1.25rem; font-weight: bold; color: #d35400; margin: 0; }
+
+        .page { display: none; padding: 15px; padding-bottom: 160px; min-height: 80vh; }
+        .page.active { display: block; }
+
+        .card { background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); display: flex; align-items: center; }
+        .card-info { flex: 1; }
+        .card-title { font-weight: bold; font-size: 1.05rem; display: block; margin-bottom: 4px; }
+        .card-price { color: var(--primary); font-weight: bold; }
+        .card-img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; margin-left: 12px; background: #eee; }
+        
+        .stepper { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+        .btn-step { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--primary); background: white; color: var(--primary); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .count-display { font-weight: bold; min-width: 20px; text-align: center; }
+
+        .btn-select { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; margin-top: 8px; cursor: pointer; }
+        .btn-none-footer { width: 100%; padding: 15px; border: 1px solid #ddd; background: #eee; color: #7f8c8d; border-radius: 10px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+
+        .cart-preview { background: #eee; padding: 10px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 15px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 85%; border-radius: 16px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .egg-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+
+        .btn-finish-selection { width: 100%; background-color: var(--blue); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; margin-top: 15px; cursor: pointer; }
+
+        .summary-list { list-style: none; padding: 0; border-top: 1px solid #eee; margin-top: 10px; }
+        .summary-list li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px 20px; box-shadow: 0 -3px 10px rgba(0,0,0,0.1); z-index: 100; }
+        .total-box { display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; }
+        .nav-btns { display: flex; gap: 10px; }
+        .btn-nav { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-size: 1.1rem; cursor: pointer; }
+        .btn-next { background: var(--success); color: white; }
+        .btn-prev { background: var(--gray); color: white; }
+
+        textarea { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px; box-sizing: border-box; font-size: 1rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div id="step-label" class="step-indicator">STEP 1</div>
+    <h1 id="step-title" class="brand-name">選擇主餐</h1>
+</div>
+
+<div id="page1" class="page active">
+    <div class="cart-preview">🛒 已選清單：<span id="cart-list">尚未點餐</span></div>
+    <div id="don-list"></div>
+</div>
+
+<div id="page2" class="page">
+    <div id="side-list"></div>
+    <button class="btn-none-footer" onclick="clearSelection('side')">❌ 不需要小菜</button>
+</div>
+
+<div id="page3" class="page">
+    <div id="extra-list"></div>
+    <button class="btn-none-footer" onclick="clearSelection('extra')">❌ 不需要單點</button>
+    <h2 style="font-size: 1rem; margin-top:20px;">特殊需求與備註</h2>
+    <textarea id="final-note" rows="3" placeholder="例如：飯多、不蔥..."></textarea>
+</div>
+
+<div id="eggModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modal-item-name" style="margin:0 0 15px 0; text-align:center;">選擇蛋種</h3>
+        <div id="egg-options-container"></div>
+        <button class="btn-finish-selection" onclick="closeModal('eggModal')">✅ 完成選擇</button>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <h2 style="text-align:center; margin-top:0;">📋 訂單明細確認</h2>
+        <ul id="summary-content" class="summary-list"></ul>
+        <div style="font-size:1.2rem; font-weight:bold; text-align:right; margin:15px 0;">總計：<span id="modal-total" style="color:var(--primary)">$0</span></div>
+        <button onclick="realSendToLine()" style="width:100%; padding:15px; background:var(--success); color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:bold;">✅ 確認無誤，送出訂單</button>
+        <button onclick="closeModal('confirmModal')" style="width:100%; border:none; color:var(--gray); background:none; padding:10px; margin-top:5px;">返回修改</button>
+    </div>
+</div>
+
+<div class="footer">
+    <div class="total-box"><span>總金額</span><span id="display-total" style="color:var(--primary)">$0</span></div>
+    <div class="nav-btns">
+        <button id="prevBtn" class="btn-nav btn-prev" onclick="changePage(-1)" style="display:none;">回上一步</button>
+        <button id="nextBtn" class="btn-nav btn-next" onclick="changePage(1)">下一步</button>
+    </div>
+</div>
+
+<script>
+    // ⚠️ 記得把下面的 LIFF ID 換成你自己的
+    const MY_LIFF_ID = "2009473594-PxFmy6Wl";
+
+    let currentStep = 1;
+    let orderMains = {}; 
+    let orderSides = {}; 
+    let orderExtras = {};
+
+    const menu = {
+        don: [
+            { n: "極上豚肉丼", img: "./img/don_pork.jpg", opts: [{t:"溏心蛋", p:90}, {t:"蛋液", p:95}, {t:"溫泉蛋", p:95}] },
+            { n: "照燒雞腿丼", img: "./img/don_chicken.jpg", opts: [{t:"溏心蛋", p:95}, {t:"蛋液", p:100}, {t:"溫泉蛋", p:100}] },
+            { n: "炙燒雪牛丼", img: "./img/don_beef.jpg", opts: [{t:"溏心蛋", p:100}, {t:"蛋液", p:105}, {t:"溫泉蛋", p:105}] },
+            { n: "唐揚雞親子丼", img: "./img/don_oyako_karaage.jpg", opts: [{t:"蛋液", p:105}, {t:"溫泉蛋", p:105}] },
+            { n: "豬排親子丼", img: "./img/don_oyako_katsu.jpg", opts: [{t:"蛋液", p:105}, {t:"溫泉蛋", p:105}] },
+            { n: "唐揚雞咖哩丼", img: "./img/don_curry_karaage.jpg", opts: [{t:"無蛋", p:105}, {t:"加溏心蛋", p:130}] },
+            { n: "豬排咖哩丼", img: "./img/don_curry_katsu.jpg", opts: [{t:"無蛋", p:105}, {t:"加溏心蛋", p:130}] }
+        ],
+        sides: [{n:"黃金泡菜", p:40}, {n:"百香南瓜", p:40}, {n:"柚香蘿蔔", p:40}, {n:"梅蕃茄", p:40}],
+        extras: [{n:"味噌湯", p:20}, {n:"溏心蛋", p:25}]
+    };
+
+    // 初始化 LINE LIFF
+    liff.init({ liffId: MY_LIFF_ID }).then(() => {
+        if (!liff.isLoggedIn()) liff.login();
+        init();
+    }).catch(err => console.error("LIFF 初始化失敗", err));
+
+    function init() {
+        const donList = document.getElementById('don-list');
+        menu.don.forEach((item, idx) => {
+            donList.innerHTML += `<div class="card"><div class="card-info"><span class="card-title">${item.n}</span><span class="card-price">$${item.opts[0].p} 起</span><br><button class="btn-select" onclick="openEggModal(${idx})">選擇組合</button></div><img src="${item.img}" class="card-img" onerror="this.src='https://placehold.co/80x80?text=丼'"></div>`;
+        });
+        renderStepperList('side-list', menu.sides, orderSides);
+        renderStepperList('extra-list', menu.extras, orderExtras);
+    }
+
+    function renderStepperList(containerId, data, stateObj) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        data.forEach(item => {
+            stateObj[item.n] = stateObj[item.n] || 0;
+            container.innerHTML += `<div class="card"><div class="card-info"><span class="card-title">${item.n}</span><span class="card-price">$${item.p}</span><div class="stepper"><button class="btn-step" onclick="updateQty('${containerId}', '${item.n}', -1)">-</button><span class="count-display" id="count-${containerId}-${item.n}">${stateObj[item.n]}</span><button class="btn-step" onclick="updateQty('${containerId}', '${item.n}', 1)">+</button></div></div></div>`;
+        });
+    }
+
+    function updateQty(type, name, delta) {
+        let state = (type === 'side-list') ? orderSides : orderExtras;
+        state[name] = Math.max(0, state[name] + delta);
+        document.getElementById(`count-${type}-${name}`).innerText = state[name];
+        calculateTotal();
+    }
+
+    function openEggModal(idx) {
+        const item = menu.don[idx];
+        document.getElementById('modal-item-name').innerText = item.n;
+        const container = document.getElementById('egg-options-container');
+        container.innerHTML = "";
+        item.opts.forEach(opt => {
+            const key = `${item.n}-${opt.t}`;
+            orderMains[key] = orderMains[key] || 0;
+            container.innerHTML += `<div class="egg-row"><span>${opt.t} (+$${opt.p})</span><div class="stepper"><button class="btn-step" onclick="updateMainQty('${key}', -1)">-</button><span class="count-display" id="main-${key}">${orderMains[key]}</span><button class="btn-step" onclick="updateMainQty('${key}', 1)">+</button></div></div>`;
+        });
+        document.getElementById('eggModal').style.display = 'flex';
+    }
+
+    function updateMainQty(key, delta) {
+        orderMains[key] = Math.max(0, orderMains[key] + delta);
+        document.getElementById(`main-${key}`).innerText = orderMains[key];
+        updateCartPreview();
+    }
+
+    function updateCartPreview() {
+        const list = document.getElementById('cart-list');
+        let selected = [];
+        for (let k in orderMains) if (orderMains[k] > 0) selected.push(`${k} x${orderMains[k]}`);
+        list.innerText = selected.length ? selected.join(', ') : "尚未點餐";
+        calculateTotal();
+    }
+
+    function clearSelection(type) {
+        let state = (type === 'side') ? orderSides : orderExtras;
+        for (let k in state) state[k] = 0;
+        renderStepperList(type + '-list', menu[type + 's'], state);
+        calculateTotal();
+        setTimeout(() => { changePage(1); }, 200);
+    }
+
+    function calculateTotal() {
+        let total = 0;
+        menu.don.forEach(m => { m.opts.forEach(o => { const key = `${m.n}-${o.t}`; if (orderMains[key]) total += orderMains[key] * o.p; }); });
+        menu.sides.forEach(s => total += (orderSides[s.n] || 0) * s.p);
+        menu.extras.forEach(e => total += (orderExtras[e.n] || 0) * e.p);
+        document.getElementById('display-total').innerText = `$${total}`;
+        return total;
+    }
+
+    function changePage(delta) {
+        let hasMain = Object.values(orderMains).some(v => v > 0);
+        if (currentStep === 1 && delta === 1 && !hasMain) return alert("請至少點一份主食喔！🍱");
+        document.getElementById(`page${currentStep}`).classList.remove('active');
+        currentStep += delta;
+        if (currentStep > 3) { showConfirmModal(); currentStep = 3; }
+        document.getElementById(`page${currentStep}`).classList.add('active');
+        document.getElementById('step-label').innerText = `STEP ${currentStep}`;
+        document.getElementById('step-title').innerText = ["選擇主餐", "選擇小菜", "選擇單點類"][currentStep-1];
+        document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'block';
+        document.getElementById('nextBtn').innerText = currentStep === 3 ? '查看明細' : '下一步';
+        window.scrollTo(0, 0);
+    }
+
+    function showConfirmModal() {
+        const list = document.getElementById('summary-content');
+        list.innerHTML = "";
+        for (let k in orderMains) if(orderMains[k] > 0) list.innerHTML += `<li><span>${k}</span><span>x${orderMains[k]}</span></li>`;
+        for (let k in orderSides) if(orderSides[k] > 0) list.innerHTML += `<li><span>${k}</span><span>x${orderSides[k]}</span></li>`;
+        for (let k in orderExtras) if(orderExtras[k] > 0) list.innerHTML += `<li><span>${k}</span><span>x${orderExtras[k]}</span></li>`;
+        document.getElementById('modal-total').innerText = document.getElementById('display-total').innerText;
+        document.getElementById('confirmModal').style.display = 'flex';
+    }
+
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // 正式發送訂單到 LINE
+    async function realSendToLine() {
+        let text = "🍱 【田野丼飯】新訂單！\n------------------\n";
+        for (let k in orderMains) if(orderMains[k] > 0) text += `• ${k} x${orderMains[k]}\n`;
+        for (let k in orderSides) if(orderSides[k] > 0) text += `• ${k} x${orderSides[k]}\n`;
+        for (let k in orderExtras) if(orderExtras[k] > 0) text += `• ${k} x${orderExtras[k]}\n`;
+        
+        const note = document.getElementById('final-note').value;
+        text += `------------------\n總計：${document.getElementById('display-total').innerText}\n`;
+        if(note) text += `備註：${note}\n`;
+        text += `------------------\n下單時間：${new Date().toLocaleString()}`;
+
+        try {
+            await liff.sendMessages([{ type: 'text', text: text }]);
+            liff.closeWindow(); // 傳完自動關閉視窗
+        } catch (err) {
+            alert("傳送失敗！請確保您是在 LINE 內開啟此網頁。");
+        }
+    }
+</script>
+</body>
+</html>
