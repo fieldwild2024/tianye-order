@@ -24,17 +24,13 @@
         
         .stepper { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
         .btn-step { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--primary); background: white; color: var(--primary); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .count-display { font-weight: bold; min-width: 20px; text-align: center; }
 
         .btn-select { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; margin-top: 8px; cursor: pointer; }
         .btn-none-footer { width: 100%; padding: 15px; border: 1px solid #ddd; background: #eee; color: #7f8c8d; border-radius: 10px; font-weight: bold; margin-top: 20px; cursor: pointer; }
 
-        .cart-preview { background: #eee; padding: 10px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 15px; }
-
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: white; width: 85%; border-radius: 16px; padding: 20px; max-height: 80vh; overflow-y: auto; }
         .egg-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-
         .btn-finish-selection { width: 100%; background-color: var(--blue); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; margin-top: 15px; cursor: pointer; }
 
         .summary-list { list-style: none; padding: 0; border-top: 1px solid #eee; margin-top: 10px; }
@@ -47,7 +43,8 @@
         .btn-next { background: var(--success); color: white; }
         .btn-prev { background: var(--gray); color: white; }
 
-        textarea { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px; box-sizing: border-box; font-size: 1rem; margin-top: 10px; }
+        input[type="time"], input[type="date"], textarea { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 12px; box-sizing: border-box; font-size: 1.1rem; margin-top: 10px; }
+        .time-label { display: block; margin-top: 15px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
@@ -58,7 +55,6 @@
 </div>
 
 <div id="page1" class="page active">
-    <div class="cart-preview">🛒 已選清單：<span id="cart-list">尚未點餐</span></div>
     <div id="don-list"></div>
 </div>
 
@@ -70,27 +66,21 @@
 <div id="page3" class="page">
     <div id="extra-list"></div>
     <button class="btn-none-footer" onclick="clearSelection('extra')">❌ 不需要單點</button>
-    <h2 style="font-size: 1rem; margin-top:20px;">特殊需求與備註</h2>
+</div>
+
+<div id="page4" class="page">
+    <label class="time-label">📅 選擇取餐日期：</label>
+    <input type="date" id="pickup-date">
+
+    <label class="time-label">⏰ 選擇取餐時間：</label>
+    <input type="time" id="pickup-time">
+    
+    <label class="time-label">📝 特殊需求與備註：</label>
     <textarea id="final-note" rows="3" placeholder="例如：飯多、不蔥..."></textarea>
 </div>
 
-<div id="eggModal" class="modal">
-    <div class="modal-content">
-        <h3 id="modal-item-name" style="margin:0 0 15px 0; text-align:center;">選擇蛋種</h3>
-        <div id="egg-options-container"></div>
-        <button class="btn-finish-selection" onclick="closeModal('eggModal')">✅ 完成選擇</button>
-    </div>
-</div>
-
-<div id="confirmModal" class="modal">
-    <div class="modal-content">
-        <h2 style="text-align:center; margin-top:0;">📋 訂單明細確認</h2>
-        <ul id="summary-content" class="summary-list"></ul>
-        <div style="font-size:1.2rem; font-weight:bold; text-align:right; margin:15px 0;">總計：<span id="modal-total" style="color:var(--primary)">$0</span></div>
-        <button onclick="realSendToLine()" style="width:100%; padding:15px; background:var(--success); color:white; border:none; border-radius:10px; font-size:1.1rem; font-weight:bold;">✅ 確認無誤，送出訂單</button>
-        <button onclick="closeModal('confirmModal')" style="width:100%; border:none; color:var(--gray); background:none; padding:10px; margin-top:5px;">返回修改</button>
-    </div>
-</div>
+<div id="eggModal" class="modal"><div class="modal-content"><h3 id="modal-item-name" style="text-align:center;">選擇組合</h3><div id="egg-options-container"></div><button class="btn-finish-selection" onclick="closeModal('eggModal')">✅ 完成選擇</button></div></div>
+<div id="confirmModal" class="modal"><div class="modal-content"><h2 style="text-align:center;margin-top:0;">📋 訂單確認</h2><ul id="summary-content" class="summary-list"></ul><div style="font-size:1.2rem;font-weight:bold;text-align:right;margin:15px 0;">總計：<span id="modal-total" style="color:var(--primary)">$0</span></div><button onclick="realSendToLine()" style="width:100%;padding:15px;background:var(--success);color:white;border:none;border-radius:10px;font-weight:bold;">✅ 確認無誤，送出訂單</button><button onclick="closeModal('confirmModal')" style="width:100%;border:none;color:var(--gray);background:none;padding:10px;margin-top:5px;">返回修改</button></div></div>
 
 <div class="footer">
     <div class="total-box"><span>總金額</span><span id="display-total" style="color:var(--primary)">$0</span></div>
@@ -101,13 +91,9 @@
 </div>
 
 <script>
-    // ⚠️ 記得把下面的 LIFF ID 換成你自己的
     const MY_LIFF_ID = "2009473594-PxFmy6Wl";
-
     let currentStep = 1;
-    let orderMains = {}; 
-    let orderSides = {}; 
-    let orderExtras = {};
+    let orderMains = {}, orderSides = {}, orderExtras = {};
 
     const menu = {
         don: [
@@ -123,13 +109,20 @@
         extras: [{n:"味噌湯", p:20}, {n:"溏心蛋", p:25}]
     };
 
-    // 初始化 LINE LIFF
-    liff.init({ liffId: MY_LIFF_ID }).then(() => {
-        if (!liff.isLoggedIn()) liff.login();
-        init();
-    }).catch(err => console.error("LIFF 初始化失敗", err));
+    liff.init({ liffId: MY_LIFF_ID }).then(() => { if (!liff.isLoggedIn()) liff.login(); init(); });
 
     function init() {
+        const now = new Date();
+        // 設定日期選擇器
+        const dateInput = document.getElementById('pickup-date');
+        const dateStr = now.toISOString().split('T')[0];
+        dateInput.value = dateStr;
+        dateInput.min = dateStr; // 不准選今天以前的日期
+
+        // 設定預設時間 (+15分鐘)
+        now.setMinutes(now.getMinutes() + 15);
+        document.getElementById('pickup-time').value = now.toTimeString().substring(0,5);
+
         const donList = document.getElementById('don-list');
         menu.don.forEach((item, idx) => {
             donList.innerHTML += `<div class="card"><div class="card-info"><span class="card-title">${item.n}</span><span class="card-price">$${item.opts[0].p} 起</span><br><button class="btn-select" onclick="openEggModal(${idx})">選擇組合</button></div><img src="${item.img}" class="card-img" onerror="this.src='https://placehold.co/80x80?text=丼'"></div>`;
@@ -139,8 +132,7 @@
     }
 
     function renderStepperList(containerId, data, stateObj) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = "";
+        const container = document.getElementById(containerId); container.innerHTML = "";
         data.forEach(item => {
             stateObj[item.n] = stateObj[item.n] || 0;
             container.innerHTML += `<div class="card"><div class="card-info"><span class="card-title">${item.n}</span><span class="card-price">$${item.p}</span><div class="stepper"><button class="btn-step" onclick="updateQty('${containerId}', '${item.n}', -1)">-</button><span class="count-display" id="count-${containerId}-${item.n}">${stateObj[item.n]}</span><button class="btn-step" onclick="updateQty('${containerId}', '${item.n}', 1)">+</button></div></div></div>`;
@@ -157,8 +149,7 @@
     function openEggModal(idx) {
         const item = menu.don[idx];
         document.getElementById('modal-item-name').innerText = item.n;
-        const container = document.getElementById('egg-options-container');
-        container.innerHTML = "";
+        const container = document.getElementById('egg-options-container'); container.innerHTML = "";
         item.opts.forEach(opt => {
             const key = `${item.n}-${opt.t}`;
             orderMains[key] = orderMains[key] || 0;
@@ -170,14 +161,6 @@
     function updateMainQty(key, delta) {
         orderMains[key] = Math.max(0, orderMains[key] + delta);
         document.getElementById(`main-${key}`).innerText = orderMains[key];
-        updateCartPreview();
-    }
-
-    function updateCartPreview() {
-        const list = document.getElementById('cart-list');
-        let selected = [];
-        for (let k in orderMains) if (orderMains[k] > 0) selected.push(`${k} x${orderMains[k]}`);
-        list.innerText = selected.length ? selected.join(', ') : "尚未點餐";
         calculateTotal();
     }
 
@@ -195,7 +178,6 @@
         menu.sides.forEach(s => total += (orderSides[s.n] || 0) * s.p);
         menu.extras.forEach(e => total += (orderExtras[e.n] || 0) * e.p);
         document.getElementById('display-total').innerText = `$${total}`;
-        return total;
     }
 
     function changePage(delta) {
@@ -203,45 +185,50 @@
         if (currentStep === 1 && delta === 1 && !hasMain) return alert("請至少點一份主食喔！🍱");
         document.getElementById(`page${currentStep}`).classList.remove('active');
         currentStep += delta;
-        if (currentStep > 3) { showConfirmModal(); currentStep = 3; }
+        if (currentStep > 4) { showConfirmModal(); currentStep = 4; }
         document.getElementById(`page${currentStep}`).classList.add('active');
         document.getElementById('step-label').innerText = `STEP ${currentStep}`;
-        document.getElementById('step-title').innerText = ["選擇主餐", "選擇小菜", "選擇單點類"][currentStep-1];
+        const titles = ["選擇主餐", "選擇小菜", "選擇單點類", "取餐日期與時間"];
+        document.getElementById('step-title').innerText = titles[currentStep-1];
         document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'block';
-        document.getElementById('nextBtn').innerText = currentStep === 3 ? '查看明細' : '下一步';
+        document.getElementById('nextBtn').innerText = currentStep === 4 ? '查看訂單' : '下一步';
         window.scrollTo(0, 0);
     }
 
     function showConfirmModal() {
-        const list = document.getElementById('summary-content');
-        list.innerHTML = "";
+        const list = document.getElementById('summary-content'); list.innerHTML = "";
         for (let k in orderMains) if(orderMains[k] > 0) list.innerHTML += `<li><span>${k}</span><span>x${orderMains[k]}</span></li>`;
         for (let k in orderSides) if(orderSides[k] > 0) list.innerHTML += `<li><span>${k}</span><span>x${orderSides[k]}</span></li>`;
         for (let k in orderExtras) if(orderExtras[k] > 0) list.innerHTML += `<li><span>${k}</span><span>x${orderExtras[k]}</span></li>`;
+        
+        const date = document.getElementById('pickup-date').value;
+        const time = document.getElementById('pickup-time').value;
+        list.innerHTML += `<li style="color:var(--primary);font-weight:bold;"><span>取餐時間</span><span>${date} ${time}</span></li>`;
+        
         document.getElementById('modal-total').innerText = document.getElementById('display-total').innerText;
         document.getElementById('confirmModal').style.display = 'flex';
     }
 
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // 正式發送訂單到 LINE
     async function realSendToLine() {
         let text = "🍱 【田野丼飯】新訂單！\n------------------\n";
         for (let k in orderMains) if(orderMains[k] > 0) text += `• ${k} x${orderMains[k]}\n`;
         for (let k in orderSides) if(orderSides[k] > 0) text += `• ${k} x${orderSides[k]}\n`;
         for (let k in orderExtras) if(orderExtras[k] > 0) text += `• ${k} x${orderExtras[k]}\n`;
         
+        const date = document.getElementById('pickup-date').value;
+        const time = document.getElementById('pickup-time').value;
         const note = document.getElementById('final-note').value;
         text += `------------------\n總計：${document.getElementById('display-total').innerText}\n`;
-        if(note) text += `備註：${note}\n`;
+        text += `🕙 取餐時間：${date} ${time}\n`;
+        if(note) text += `📝 備註：${note}\n`;
         text += `------------------\n下單時間：${new Date().toLocaleString()}`;
 
         try {
             await liff.sendMessages([{ type: 'text', text: text }]);
-            liff.closeWindow(); // 傳完自動關閉視窗
-        } catch (err) {
-            alert("傳送失敗！請確保您是在 LINE 內開啟此網頁。");
-        }
+            liff.closeWindow();
+        } catch (err) { alert("傳送失敗！"); }
     }
 </script>
 </body>
